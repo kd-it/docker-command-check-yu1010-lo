@@ -1,0 +1,51 @@
+name: Autograding Tests
+'on':
+- push
+- workflow_dispatch
+- repository_dispatch
+permissions:
+  checks: write
+  actions: read
+  contents: read
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: arch test
+      id: arch-test
+      uses: education/autograding-command-grader@v1
+      with:
+        test-name: arch test
+        setup-command: ''
+        command: head -n1 ex1/result.txt | egrep -q '(x86_64|aarch64)'
+        timeout: 1
+        max-score: 1
+    - name: run test
+      id: run-test
+      uses: education/autograding-command-grader@v1
+      with:
+        test-name: run test
+        setup-command: ''
+        command: grep -q -o 5963 ex2/result.txt
+        timeout: 1
+        max-score: 1
+    - name: image size
+      id: image-size
+      uses: education/autograding-command-grader@v1
+      with:
+        test-name: image size
+        setup-command: ''
+        command: egrep -q '[0-9]\.[0-9]+ ?MB' ex3/result.txt
+        timeout: 1
+        max-score: 1
+    - name: Autograding Reporter
+      uses: education/autograding-grading-reporter@v1
+      env:
+        ARCH-TEST_RESULTS: "${{steps.arch-test.outputs.result}}"
+        RUN-TEST_RESULTS: "${{steps.run-test.outputs.result}}"
+        IMAGE-SIZE_RESULTS: "${{steps.image-size.outputs.result}}"
+      with:
+        runners: arch-test,run-test,image-size
